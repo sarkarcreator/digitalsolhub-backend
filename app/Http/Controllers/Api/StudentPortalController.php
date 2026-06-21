@@ -343,7 +343,7 @@ class StudentPortalController extends Controller
                 'studentName' => $payload['studentName'] ?? $payload['owner'] ?? 'Student',
                 'courseName' => $payload['courseName'] ?? $payload['title'] ?? 'Digital Solutions Hub Credential',
                 'issueDate' => $payload['issuedDate'] ?? $payload['issueDate'] ?? $row->created_at,
-                'issuer' => $payload['issuer'] ?? 'Digital Solutions Hub',
+                'issuer' => $payload['issuer'] ?? 'DSH The Royal School & College',
                 'status' => $payload['status'] ?? 'verified',
                 'payload' => $payload,
             ]);

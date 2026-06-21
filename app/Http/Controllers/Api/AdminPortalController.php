@@ -435,7 +435,7 @@ class AdminPortalController extends Controller
                     [
                         'certification_number' => 'DSH-' . Str::upper(Str::random(10)),
                         'issued_date' => now()->toDateString(),
-                        'issuing_organization' => 'Digital Solutions Hub',
+                        'issuing_organization' => 'DSH The Royal School & College',
                         'status' => 'active',
                     ]
                 );
