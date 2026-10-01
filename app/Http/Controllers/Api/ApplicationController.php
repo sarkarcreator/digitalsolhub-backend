@@ -6,7 +6,7 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
-use Illuminate\Support\Str;
+use Illuminate\Support\Str;\nuse App\Models\PartnerApplication;\nuse App\Models\Skill;
 
 class ApplicationController extends Controller
 {
@@ -102,6 +102,26 @@ class ApplicationController extends Controller
             'id' => $id,
             'message' => 'Application submitted successfully.',
         ], 201);
+    }
+
+    public function storePartnerApplication(Request $request)
+    {
+        $data=$request->validate([
+            'full_name'=>['required','string','max:255'],'email'=>['required','email','max:255'],'phone'=>['nullable','string','max:50'],
+            'country'=>['nullable','string','max:120'],'city'=>['nullable','string','max:120'],'bio'=>['nullable','string','max:5000'],
+            'experience_years'=>['nullable','integer','min:0','max:80'],'availability'=>['nullable','string','max:120'],
+            'skills'=>['nullable','array'],'skills.*'=>['integer','exists:skills,id'],
+        ]);
+        $application=DB::transaction(function() use($data){
+            $application=PartnerApplication::create([
+                'application_number'=>'DSH-PA-'.now()->format('YmdHis').'-'.Str::upper(Str::random(4)),
+                'full_name'=>$data['full_name'],'email'=>$data['email'],'phone'=>$data['phone']??null,'country'=>$data['country']??null,'city'=>$data['city']??null,
+                'bio'=>$data['bio']??null,'experience_years'=>$data['experience_years']??null,'availability'=>$data['availability']??null,'status'=>'pending','submitted_at'=>now(),
+            ]);
+            foreach($data['skills']??[] as $skillId){$application->skills()->create(['skill_id'=>$skillId]);}
+            return $application->load('skills.skill');
+        });
+        return response()->json(['message'=>'Partner application submitted successfully.','application'=>$application],201);
     }
 
     protected function applicationLabel(string $type): string
