@@ -71,7 +71,7 @@ class AdminPartnerController extends Controller
     {
         $this->admin($request);
         abort_unless($order->partner_id,422,'Order has no partner assigned.');
-        abort_if($order->payment_status!=='paid',422,'Client payment must be received before commission approval.');
+        abort_if(!in_array($order->payment_status,['paid','completed'],true),422,'Client payment must be received before commission approval.');
         abort_if($order->commission()->whereIn('status',['approved','payable','paid'])->exists(),422,'Commission is already locked.');
         $data=$request->validate([
             'commission_type'=>['required','in:percentage,fixed'],
