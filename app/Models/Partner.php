@@ -11,4 +11,5 @@ class Partner extends Model {
  public function wallet(){return $this->hasOne(PartnerWallet::class);}
  public function commissions(){return $this->hasMany(Commission::class);}
  public function orders(){return $this->hasMany(Order::class);}
+ public function socialAccounts(){return $this->hasMany(SocialAccount::class);}
 }
