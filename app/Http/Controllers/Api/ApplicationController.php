@@ -118,7 +118,8 @@ class ApplicationController extends Controller
                 'full_name'=>$data['full_name'],'email'=>$data['email'],'phone'=>$data['phone']??null,'country'=>$data['country']??null,'city'=>$data['city']??null,
                 'bio'=>$data['bio']??null,'experience_years'=>$data['experience_years']??null,'availability'=>$data['availability']??null,'status'=>'pending','submitted_at'=>now(),
             ]);
-            foreach($data['skills']??[] as $skillId){$application->skills()->create(['skill_id'=>$skillId]);}\n            foreach(preg_split('/[,\\n]+/',(string)($data['skills_text']??''),-1,PREG_SPLIT_NO_EMPTY) as $skillName){$skillName=trim($skillName); if(!$skillName) continue; $skill=Skill::firstOrCreate(['slug'=>Str::slug($skillName)],['name'=>$skillName,'is_active'=>true]); $application->skills()->firstOrCreate(['skill_id'=>$skill->id]);}
+            foreach($data['skills']??[] as $skillId){$application->skills()->create(['skill_id'=>$skillId]);}\n            foreach(preg_split('/[,
+]+/',(string)($data['skills_text']??''),-1,PREG_SPLIT_NO_EMPTY) as $skillName){$skillName=trim($skillName); if(!$skillName) continue; $skill=Skill::firstOrCreate(['slug'=>Str::slug($skillName)],['name'=>$skillName,'is_active'=>true]); $application->skills()->firstOrCreate(['skill_id'=>$skill->id]);}
             return $application->load('skills.skill');
         });
         return response()->json(['message'=>'Partner application submitted successfully.','application'=>$application],201);
