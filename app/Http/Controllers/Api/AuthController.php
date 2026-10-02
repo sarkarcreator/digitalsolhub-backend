@@ -234,7 +234,8 @@ class AuthController extends Controller
             'email' => $user->email,
             'phone' => $user->phone,
             'role' => $user->role,
-            'studentId' => $user->studentProfile?->student_id,\n            'partner' => $user->partner ? ['id'=>$user->partner->id,'slug'=>$user->partner->slug,'partnerCode'=>$user->partner->partner_code] : null,
+            'studentId' => $user->studentProfile?->student_id,
+            'partner' => $user->partner ? ['id'=>$user->partner->id,'slug'=>$user->partner->slug,'partnerCode'=>$user->partner->partner_code] : null,
         ];
     }
 }

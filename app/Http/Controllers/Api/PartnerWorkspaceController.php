@@ -24,11 +24,11 @@ class PartnerWorkspaceController extends Controller
     public function resources()
     {
         return response()->json([
-            ['id'=>'brand-kit','title'=>'DSH Brand Kit','description'=>'Approved DSH logos, brand guidance and profile assets.','type'=>'Branding','action'=>'Contact DSH Admin'],
-            ['id'=>'sales-kit','title'=>'Partner Sales Kit','description'=>'Service presentation, proposal structure and client communication guidance.','type'=>'Sales','action'=>'View with DSH'],
-            ['id'=>'delivery-checklist','title'=>'Project Delivery Checklist','description'=>'A practical checklist for discovery, delivery, revisions and handover.','type'=>'Operations','action'=>'Use checklist'],
-            ['id'=>'ai-tools','title'=>'AI & Productivity Resources','description'=>'Recommended AI workflows and productivity resources for DSH partners.','type'=>'Training','action'=>'Open resources'],
-            ['id'=>'support','title'=>'Partner Support','description'=>'Need help with a client, project, payment or technical issue? Contact DSH support.','type'=>'Support','action'=>'Contact support'],
+            ['id'=>'brand-kit','title'=>'DSH Brand Kit','description'=>'Approved DSH logos, brand guidance and profile assets.','type'=>'Branding','action'=>'Contact DSH Admin','action_url'=>'/en/contact?subject=Partner%20Brand%20Kit'],
+            ['id'=>'sales-kit','title'=>'Partner Sales Kit','description'=>'Service presentation, proposal structure and client communication guidance.','type'=>'Sales','action'=>'Contact DSH','action_url'=>'/en/contact?subject=Partner%20Sales%20Kit'],
+            ['id'=>'delivery-checklist','title'=>'Project Delivery Checklist','description'=>'A practical checklist for discovery, delivery, revisions and handover.','type'=>'Operations','action'=>'Open checklist','action_url'=>null],
+            ['id'=>'ai-tools','title'=>'AI & Productivity Resources','description'=>'Recommended AI workflows and productivity resources for DSH partners.','type'=>'Training','action'=>'Open DSH Tools','action_url'=>'/en/tools'],
+            ['id'=>'support','title'=>'Partner Support','description'=>'Need help with a client, project, payment or technical issue? Contact DSH support.','type'=>'Support','action'=>'Contact DSH','action_url'=>'/en/contact?subject=Partner%20Support'],
         ]);
     }
 
