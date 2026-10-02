@@ -83,6 +83,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/business-email/request', [PartnerController::class, 'requestBusinessEmail']);
         Route::get('/onboarding', [PartnerController::class, 'onboarding']);
         Route::post('/change-requests', [PartnerController::class, 'requestChange']);
+        Route::post('/deletion-requests', [PartnerController::class, 'requestDeletion']);
         Route::get('/leads', [\App\Http\Controllers\Api\PartnerWorkspaceController::class, 'leads']);
         Route::get('/payout-accounts', [\App\Http\Controllers\Api\PartnerWorkspaceController::class, 'payoutAccounts']);
         Route::post('/payout-accounts', [\App\Http\Controllers\Api\PartnerWorkspaceController::class, 'storePayoutAccount']);
@@ -95,6 +96,8 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/partners/{partner}/business-email', [AdminPartnerController::class, 'businessEmail']);
         Route::delete('/partners/{partner}', [AdminPartnerController::class, 'deletePartner']);
         Route::get('/partner-change-requests', [AdminPartnerController::class, 'changeRequests']);
+        Route::get('/partner-deletion-requests', [AdminPartnerController::class, 'deletionRequests']);
+        Route::put('/partner-deletion-requests/{deletionRequest}', [AdminPartnerController::class, 'reviewDeletionRequest']);
         Route::put('/partner-change-requests/{changeRequest}', [AdminPartnerController::class, 'reviewChangeRequest']);
         Route::get('/partner-applications', [AdminPartnerController::class, 'applications']);
         Route::get('/partner-applications/{application}', [AdminPartnerController::class, 'application']);
