@@ -80,6 +80,9 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/social-accounts', [\App\Http\Controllers\Api\PartnerWorkspaceController::class, 'storeSocialAccount']);
         Route::delete('/social-accounts/{socialAccount}', [\App\Http\Controllers\Api\PartnerWorkspaceController::class, 'deleteSocialAccount']);
         Route::get('/business-email', [\App\Http\Controllers\Api\PartnerWorkspaceController::class, 'businessEmail']);
+        Route::post('/business-email/request', [PartnerController::class, 'requestBusinessEmail']);
+        Route::get('/onboarding', [PartnerController::class, 'onboarding']);
+        Route::post('/change-requests', [PartnerController::class, 'requestChange']);
         Route::get('/leads', [\App\Http\Controllers\Api\PartnerWorkspaceController::class, 'leads']);
         Route::get('/payout-accounts', [\App\Http\Controllers\Api\PartnerWorkspaceController::class, 'payoutAccounts']);
         Route::post('/payout-accounts', [\App\Http\Controllers\Api\PartnerWorkspaceController::class, 'storePayoutAccount']);
@@ -88,6 +91,11 @@ Route::middleware('auth:sanctum')->group(function () {
 
     Route::prefix('admin')->group(function () {
         Route::get('/partners', [AdminPartnerController::class, 'partners']);
+        Route::put('/partners/{partner}/onboarding/{item}', [AdminPartnerController::class, 'updateOnboarding']);
+        Route::post('/partners/{partner}/business-email', [AdminPartnerController::class, 'businessEmail']);
+        Route::delete('/partners/{partner}', [AdminPartnerController::class, 'deletePartner']);
+        Route::get('/partner-change-requests', [AdminPartnerController::class, 'changeRequests']);
+        Route::put('/partner-change-requests/{changeRequest}', [AdminPartnerController::class, 'reviewChangeRequest']);
         Route::get('/partner-applications', [AdminPartnerController::class, 'applications']);
         Route::get('/partner-applications/{application}', [AdminPartnerController::class, 'application']);
         Route::put('/partner-applications/{application}', [AdminPartnerController::class, 'updateApplication']);
