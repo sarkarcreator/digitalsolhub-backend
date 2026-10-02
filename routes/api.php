@@ -69,9 +69,11 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/services', [PartnerController::class, 'services']);
         Route::post('/services', [PartnerController::class, 'storeService']);
         Route::put('/services/{service}', [PartnerController::class, 'updateService']);
+        Route::delete('/services/{service}', [PartnerController::class, 'deleteService']);
         Route::get('/portfolio', [PartnerController::class, 'portfolio']);
         Route::post('/portfolio', [PartnerController::class, 'storePortfolio']);
         Route::put('/portfolio/{item}', [PartnerController::class, 'updatePortfolio']);
+        Route::delete('/portfolio/{item}', [PartnerController::class, 'deletePortfolio']);
         Route::get('/orders', [PartnerController::class, 'orders']);
         Route::get('/commissions', [PartnerController::class, 'commissions']);
         Route::get('/wallet', [PartnerController::class, 'wallet']);
