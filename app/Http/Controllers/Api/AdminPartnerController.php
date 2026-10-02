@@ -11,6 +11,7 @@ use App\Models\PartnerWallet;
 use App\Models\WalletTransaction;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Password;
 use Illuminate\Support\Str;
 
 class AdminPartnerController extends Controller
@@ -57,6 +58,12 @@ class AdminPartnerController extends Controller
             ]);
             PartnerWallet::firstOrCreate(['partner_id'=>$partner->id],['currency'=>'USD']);
             $application->update(['user_id'=>$user->id,'status'=>'approved','submitted_at'=>$application->submitted_at ?: now()]);
+
+            DB::afterCommit(function () use ($user) {
+                $token = Password::broker()->createToken($user);
+                $user->notify(new \App\Notifications\DshPasswordResetNotification($token, true));
+            });
+
             return response()->json(['application'=>$application->fresh(),'partner'=>$partner,'user'=>$user]);
         });
     }
