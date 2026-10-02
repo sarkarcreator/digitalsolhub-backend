@@ -42,7 +42,7 @@ class AdminPartnerController extends Controller
             : collect();
 
         $counts = [
-            'profile' => $partner->display_name && $partner->bio ? 1 : 0,
+            'profile' => ($partner->legal_name && $partner->cnic && $partner->date_of_birth && $partner->father_name && $partner->real_phone && $partner->whatsapp_number && $partner->profile_photo) ? 1 : 0,
             'portfolio' => $partner->portfolioItems()->count(),
             'services' => $partner->services()->count(),
             'social' => $partner->socialAccounts()->count(),
