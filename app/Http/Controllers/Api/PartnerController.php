@@ -130,6 +130,6 @@ class PartnerController extends Controller
     public function publicProfile(string $slug)
     {
         $partner=Partner::where('slug',$slug)->where('status','active')->firstOrFail();
-        return response()->json($partner->load(['portfolio','portfolioItems'=>fn($q)=>$q->where('is_public',true),'services'=>fn($q)=>$q->where('is_active',true)->with('service')]));
+        return response()->json($partner->load(['portfolio','portfolioItems'=>fn($q)=>$q->where('is_public',true),'services'=>fn($q)=>$q->where('is_active',true)->with('service'),'socialAccounts']));
     }
 }
