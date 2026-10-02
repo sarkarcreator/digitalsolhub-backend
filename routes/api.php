@@ -7,7 +7,9 @@ use App\Http\Controllers\Api\AdminPortalController;
 use App\Http\Controllers\Api\ApplicationController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\ClientPortalController;
-use App\Http\Controllers\Api\StudentPortalController;\nuse App\Http\Controllers\Api\PartnerController;\nuse App\Http\Controllers\Api\AdminPartnerController;
+use App\Http\Controllers\Api\StudentPortalController;
+use App\Http\Controllers\Api\PartnerController;
+use App\Http\Controllers\Api\AdminPartnerController;
 
 Route::prefix('auth')->group(function () {
     Route::post('/login', [AuthController::class, 'login']);
@@ -22,7 +24,10 @@ Route::prefix('auth')->group(function () {
 // AI proxy - server-side gateway to Gemini/GenAI. Configure GEMINI_API_KEY in backend .env to enable.
 Route::post('/ai/chat', [\App\Http\Controllers\Api\AiController::class, 'chat']);
 Route::post('/applications', [ApplicationController::class, 'store']);
-Route::post('/newsletter/subscribe', [ApplicationController::class, 'newsletter']);\nRoute::get('/partners/{slug}', [PartnerController::class, 'publicProfile']);\nRoute::post('/partner-applications', [ApplicationController::class, 'storePartnerApplication']);\nRoute::get('/services', fn () => response()->json(\App\Models\Service::where('is_active', true)->latest()->get()));
+Route::post('/newsletter/subscribe', [ApplicationController::class, 'newsletter']);
+Route::get('/partners/{slug}', [PartnerController::class, 'publicProfile']);
+Route::post('/partner-applications', [ApplicationController::class, 'storePartnerApplication']);
+Route::get('/services', fn () => response()->json(\App\Models\Service::where('is_active', true)->latest()->get()));
 Route::get('/public/modules/{module}', [AdminPortalController::class, 'publicIndex']);
 Route::get('/certificates/verify/{certificate}', [StudentPortalController::class, 'verifyCertificate']);
 Route::get('/badges/verify/{badge}', [StudentPortalController::class, 'verifyBadge']);
@@ -55,16 +60,55 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/client/projects', [ClientPortalController::class, 'storeProject']);
     Route::put('/client/projects/{project}', [ClientPortalController::class, 'updateProject']);
     Route::delete('/client/projects/{project}', [ClientPortalController::class, 'destroyProject']);
-    Route::post('/client/messages', [ClientPortalController::class, 'sendMessage']);\n\n    Route::prefix('partner')->middleware('auth:sanctum')->group(function () {\n        Route::get('/dashboard', [PartnerController::class, 'dashboard']);\n        Route::get('/profile', [PartnerController::class, 'profile']);\n        Route::put('/profile', [PartnerController::class, 'updateProfile']);\n        Route::get('/services', [PartnerController::class, 'services']);\n        Route::post('/services', [PartnerController::class, 'storeService']);\n        Route::put('/services/{service}', [PartnerController::class, 'updateService']);\n        Route::get('/portfolio', [PartnerController::class, 'portfolio']);\n        Route::post('/portfolio', [PartnerController::class, 'storePortfolio']);\n        Route::put('/portfolio/{item}', [PartnerController::class, 'updatePortfolio']);\n        Route::get('/orders', [PartnerController::class, 'orders']);\n        Route::get('/commissions', [PartnerController::class, 'commissions']);\n        Route::get('/wallet', [PartnerController::class, 'wallet']);
+    Route::post('/client/messages', [ClientPortalController::class, 'sendMessage']);
+
+    Route::prefix('partner')->middleware('auth:sanctum')->group(function () {
+        Route::get('/dashboard', [PartnerController::class, 'dashboard']);
+        Route::get('/profile', [PartnerController::class, 'profile']);
+        Route::put('/profile', [PartnerController::class, 'updateProfile']);
+        Route::get('/services', [PartnerController::class, 'services']);
+        Route::post('/services', [PartnerController::class, 'storeService']);
+        Route::put('/services/{service}', [PartnerController::class, 'updateService']);
+        Route::delete('/services/{service}', [PartnerController::class, 'deleteService']);
+        Route::get('/portfolio', [PartnerController::class, 'portfolio']);
+        Route::post('/portfolio', [PartnerController::class, 'storePortfolio']);
+        Route::put('/portfolio/{item}', [PartnerController::class, 'updatePortfolio']);
+        Route::delete('/portfolio/{item}', [PartnerController::class, 'deletePortfolio']);
+        Route::get('/orders', [PartnerController::class, 'orders']);
+        Route::get('/commissions', [PartnerController::class, 'commissions']);
+        Route::get('/wallet', [PartnerController::class, 'wallet']);
         Route::get('/resources', [\App\Http\Controllers\Api\PartnerWorkspaceController::class, 'resources']);
         Route::get('/social-accounts', [\App\Http\Controllers\Api\PartnerWorkspaceController::class, 'socialAccounts']);
         Route::post('/social-accounts', [\App\Http\Controllers\Api\PartnerWorkspaceController::class, 'storeSocialAccount']);
         Route::delete('/social-accounts/{socialAccount}', [\App\Http\Controllers\Api\PartnerWorkspaceController::class, 'deleteSocialAccount']);
         Route::get('/business-email', [\App\Http\Controllers\Api\PartnerWorkspaceController::class, 'businessEmail']);
+        Route::post('/business-email/request', [PartnerController::class, 'requestBusinessEmail']);
+        Route::get('/onboarding', [PartnerController::class, 'onboarding']);
+        Route::post('/change-requests', [PartnerController::class, 'requestChange']);
+        Route::post('/deletion-requests', [PartnerController::class, 'requestDeletion']);
         Route::get('/leads', [\App\Http\Controllers\Api\PartnerWorkspaceController::class, 'leads']);
         Route::get('/payout-accounts', [\App\Http\Controllers\Api\PartnerWorkspaceController::class, 'payoutAccounts']);
         Route::post('/payout-accounts', [\App\Http\Controllers\Api\PartnerWorkspaceController::class, 'storePayoutAccount']);
-        Route::post('/payout-requests', [\App\Http\Controllers\Api\PartnerWorkspaceController::class, 'requestPayout']);\n    });\n\n    Route::prefix('admin')->group(function () {\n        Route::get('/partners', [AdminPartnerController::class, 'partners']);\n        Route::get('/partner-applications', [AdminPartnerController::class, 'applications']);\n        Route::get('/partner-applications/{application}', [AdminPartnerController::class, 'application']);\n        Route::put('/partner-applications/{application}', [AdminPartnerController::class, 'updateApplication']);\n        Route::post('/partner-applications/{application}/approve', [AdminPartnerController::class, 'approveApplication']);\n        Route::get('/commissions', [AdminPartnerController::class, 'commissions']);\n        Route::post('/orders/{order}/commission', [AdminPartnerController::class, 'setCommission']);\n        Route::post('/commissions/{commission}/release', [AdminPartnerController::class, 'releaseCommission']);\n    });
+        Route::post('/payout-requests', [\App\Http\Controllers\Api\PartnerWorkspaceController::class, 'requestPayout']);
+    });
+
+    Route::prefix('admin')->group(function () {
+        Route::get('/partners', [AdminPartnerController::class, 'partners']);
+        Route::put('/partners/{partner}/onboarding/{item}', [AdminPartnerController::class, 'updateOnboarding']);
+        Route::post('/partners/{partner}/business-email', [AdminPartnerController::class, 'businessEmail']);
+        Route::delete('/partners/{partner}', [AdminPartnerController::class, 'deletePartner']);
+        Route::get('/partner-change-requests', [AdminPartnerController::class, 'changeRequests']);
+        Route::get('/partner-deletion-requests', [AdminPartnerController::class, 'deletionRequests']);
+        Route::put('/partner-deletion-requests/{deletionRequest}', [AdminPartnerController::class, 'reviewDeletionRequest']);
+        Route::put('/partner-change-requests/{changeRequest}', [AdminPartnerController::class, 'reviewChangeRequest']);
+        Route::get('/partner-applications', [AdminPartnerController::class, 'applications']);
+        Route::get('/partner-applications/{application}', [AdminPartnerController::class, 'application']);
+        Route::put('/partner-applications/{application}', [AdminPartnerController::class, 'updateApplication']);
+        Route::post('/partner-applications/{application}/approve', [AdminPartnerController::class, 'approveApplication']);
+        Route::get('/commissions', [AdminPartnerController::class, 'commissions']);
+        Route::post('/orders/{order}/commission', [AdminPartnerController::class, 'setCommission']);
+        Route::post('/commissions/{commission}/release', [AdminPartnerController::class, 'releaseCommission']);
+    });
     Route::post('/client/files', [ClientPortalController::class, 'uploadFile']);
     Route::put('/client/profile', [ClientPortalController::class, 'updateProfile']);
 });

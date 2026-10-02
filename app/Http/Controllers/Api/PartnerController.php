@@ -15,6 +15,7 @@ use App\Models\Service;
 use App\Models\WalletTransaction;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
 
 class PartnerController extends Controller
@@ -55,9 +56,33 @@ class PartnerController extends Controller
         $data=$request->validate([
             'display_name'=>['required','string','max:120'],'professional_title'=>['nullable','string','max:180'],
             'bio'=>['nullable','string','max:5000'],'country'=>['nullable','string','max:100'],'city'=>['nullable','string','max:100'],
-            'timezone'=>['nullable','string','max:80'],'profile_photo'=>['nullable','string','max:1000'],'cover_photo'=>['nullable','string','max:1000'],
+            'timezone'=>['nullable','string','max:80'],'cover_photo'=>['nullable','string','max:1000'],
+            'legal_name'=>['required','string','max:160'],'cnic'=>['required','string','max:30'],
+            'date_of_birth'=>['required','date','before:today'],'father_name'=>['required','string','max:160'],
+            'real_phone'=>['required','string','max:40'],'whatsapp_number'=>['required','string','max:40'],
         ]);
+        $sensitiveChanged = $partner->legal_name !== $request->input('legal_name')
+            || $partner->cnic !== $request->input('cnic')
+            || (string) $partner->date_of_birth?->format('Y-m-d') !== (string) $request->input('date_of_birth')
+            || $partner->father_name !== $request->input('father_name')
+            || $partner->real_phone !== $request->input('real_phone')
+            || $partner->whatsapp_number !== $request->input('whatsapp_number')
+            || $request->hasFile('profile_photo');
+
+        if ($request->hasFile('profile_photo')) {
+            $request->validate(['profile_photo'=>['image','mimes:jpg,jpeg,png,webp','max:4096']]);
+            if ($partner->profile_photo) {
+                \Illuminate\Support\Facades\Storage::disk('public')->delete($partner->profile_photo);
+            }
+            $data['profile_photo']=$request->file('profile_photo')->store('partners/profile','public');
+        }
         $partner->update($data);
+        if ($sensitiveChanged && Schema::hasTable('partner_onboarding_items')) {
+            DB::table('partner_onboarding_items')->updateOrInsert(
+                ['partner_id'=>$partner->id,'item_type'=>'profile'],
+                ['status'=>'pending','admin_notes'=>'Profile identity details updated and require admin verification.','updated_at'=>now(),'created_at'=>now()]
+            );
+        }
         $portfolio=$partner->portfolio()->updateOrCreate(['partner_id'=>$partner->id],[
             'headline'=>$request->input('headline'),'about'=>$request->input('about'),'experience'=>$request->input('experience'),
             'education'=>$request->input('education'),'location'=>$request->input('location'),'website'=>$request->input('website'),
@@ -111,6 +136,22 @@ class PartnerController extends Controller
         $item->update($data); return response()->json($item->fresh());
     }
 
+    public function deleteService(Request $request, PartnerService $service)
+    {
+        $partner=$this->partner($request);
+        abort_unless($service->partner_id===$partner->id,403);
+        $service->delete();
+        return response()->json(['message'=>'Service deleted successfully.']);
+    }
+
+    public function deletePortfolio(Request $request, PortfolioItem $item)
+    {
+        $partner=$this->partner($request);
+        abort_unless($item->partner_id===$partner->id,403);
+        $item->delete();
+        return response()->json(['message'=>'Portfolio item deleted successfully.']);
+    }
+
     public function commissions(Request $request)
     {
         return response()->json($this->partner($request)->commissions()->with('order')->latest()->paginate(25));
@@ -125,6 +166,84 @@ class PartnerController extends Controller
     public function orders(Request $request)
     {
         return response()->json($this->partner($request)->orders()->with(['commission','payments'])->latest()->paginate(25));
+    }
+
+
+
+    public function onboarding(Request $request)
+    {
+        $partner=$this->partner($request);
+        $types=['profile','portfolio','services','social','business_email','payout_account'];
+        $rows=Schema::hasTable('partner_onboarding_items')
+            ? DB::table('partner_onboarding_items')->where('partner_id',$partner->id)->get()->keyBy('item_type')
+            : collect();
+        $has=[
+            'profile'=>(bool)($partner->legal_name && $partner->cnic && $partner->date_of_birth && $partner->father_name && $partner->real_phone && $partner->whatsapp_number && $partner->profile_photo),
+            'portfolio'=>$partner->portfolioItems()->count()>0,
+            'services'=>$partner->services()->count()>0,
+            'social'=>$partner->socialAccounts()->count()>0,
+            'business_email'=>$partner->businessEmail()->exists(),
+            'payout_account'=>$partner->payoutAccounts()->count()>0,
+        ];
+        return response()->json(collect($types)->mapWithKeys(function($type) use($rows,$has){
+            $row=$rows->get($type);
+            return [$type=>['status'=>$row->status??'pending','has_data'=>$has[$type],'admin_notes'=>$row->admin_notes??null,'reviewed_at'=>$row->reviewed_at??null]];
+        }));
+    }
+
+    public function requestChange(Request $request)
+    {
+        $partner=$this->partner($request);
+        $data=$request->validate([
+            'item_type'=>['required','in:profile,portfolio,services,social,business_email,payout_account'],
+            'message'=>['required','string','max:5000'],
+        ]);
+        $id=DB::table('partner_change_requests')->insertGetId([
+            'partner_id'=>$partner->id,'item_type'=>$data['item_type'],'message'=>$data['message'],'status'=>'pending','created_at'=>now(),'updated_at'=>now(),
+        ]);
+        return response()->json(DB::table('partner_change_requests')->where('id',$id)->first(),201);
+    }
+
+    public function requestDeletion(Request $request)
+    {
+        $partner=$this->partner($request);
+        $data=$request->validate([
+            'target_type'=>['required','in:profile,business_email,payout_account,partner_account'],
+            'target_id'=>['nullable','integer'],
+            'reason'=>['required','string','max:5000'],
+        ]);
+        if ($data['target_type']==='payout_account') {
+            abort_unless($data['target_id'] && $partner->payoutAccounts()->whereKey($data['target_id'])->exists(),404,'Payout account not found.');
+        }
+        if ($data['target_type']==='business_email') {
+            abort_unless($partner->businessEmail()->exists(),404,'Business email not found.');
+            $data['target_id']=$partner->businessEmail()->value('id');
+        }
+        if ($data['target_type']==='profile') $data['target_id']=$partner->id;
+        if ($data['target_type']==='partner_account') $data['target_id']=$partner->id;
+
+        abort_if(DB::table('partner_deletion_requests')->where('partner_id',$partner->id)->where('status','pending')->exists(),422,'You already have a pending deletion request.');
+
+        $id=DB::table('partner_deletion_requests')->insertGetId([
+            'partner_id'=>$partner->id,'target_type'=>$data['target_type'],'target_id'=>$data['target_id']??null,
+            'reason'=>$data['reason'],'status'=>'pending','created_at'=>now(),'updated_at'=>now(),
+        ]);
+        return response()->json(DB::table('partner_deletion_requests')->where('id',$id)->first(),201);
+    }
+
+    public function requestBusinessEmail(Request $request)
+    {
+        $partner=$this->partner($request);
+        $existing=$partner->businessEmail;
+        if (!$existing) {
+            $email=Str::slug($partner->display_name).'.partner@digitalsolhub.com';
+            $email=strtolower(preg_replace('/[^a-z0-9.]+/','.',str_replace(' ','-',$email)));
+            $email=preg_replace('/\.+/','.',str_replace('@digitalsolhub.com','',$email)).'@digitalsolhub.com';
+            $partner->businessEmail()->create(['email_address'=>$email,'mailbox_provider'=>'Hostinger','status'=>'pending']);
+        } elseif ($existing->status==='suspended') {
+            $existing->update(['status'=>'pending']);
+        }
+        return response()->json($partner->businessEmail()->first());
     }
 
     public function publicProfile(string $slug)
