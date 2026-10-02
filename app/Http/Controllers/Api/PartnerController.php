@@ -127,6 +127,57 @@ class PartnerController extends Controller
         return response()->json($this->partner($request)->orders()->with(['commission','payments'])->latest()->paginate(25));
     }
 
+
+
+    public function onboarding(Request $request)
+    {
+        $partner=$this->partner($request);
+        $types=['profile','portfolio','services','social','business_email','payout_account'];
+        $rows=Schema::hasTable('partner_onboarding_items')
+            ? DB::table('partner_onboarding_items')->where('partner_id',$partner->id)->get()->keyBy('item_type')
+            : collect();
+        $has=[
+            'profile'=>(bool)($partner->display_name && $partner->bio),
+            'portfolio'=>$partner->portfolioItems()->count()>0,
+            'services'=>$partner->services()->count()>0,
+            'social'=>$partner->socialAccounts()->count()>0,
+            'business_email'=>$partner->businessEmail()->exists(),
+            'payout_account'=>$partner->payoutAccounts()->count()>0,
+        ];
+        return response()->json(collect($types)->mapWithKeys(function($type) use($rows,$has){
+            $row=$rows->get($type);
+            return [$type=>['status'=>$row->status??'pending','has_data'=>$has[$type],'admin_notes'=>$row->admin_notes??null,'reviewed_at'=>$row->reviewed_at??null]];
+        }));
+    }
+
+    public function requestChange(Request $request)
+    {
+        $partner=$this->partner($request);
+        $data=$request->validate([
+            'item_type'=>['required','in:profile,portfolio,services,social,business_email,payout_account'],
+            'message'=>['required','string','max:5000'],
+        ]);
+        $id=DB::table('partner_change_requests')->insertGetId([
+            'partner_id'=>$partner->id,'item_type'=>$data['item_type'],'message'=>$data['message'],'status'=>'pending','created_at'=>now(),'updated_at'=>now(),
+        ]);
+        return response()->json(DB::table('partner_change_requests')->where('id',$id)->first(),201);
+    }
+
+    public function requestBusinessEmail(Request $request)
+    {
+        $partner=$this->partner($request);
+        $existing=$partner->businessEmail;
+        if (!$existing) {
+            $email=Str::slug($partner->display_name).'.partner@digitalsolhub.com';
+            $email=strtolower(preg_replace('/[^a-z0-9.]+/','.',str_replace(' ','-',$email)));
+            $email=preg_replace('/\.+/','.',str_replace('@digitalsolhub.com','',$email)).'@digitalsolhub.com';
+            $partner->businessEmail()->create(['email_address'=>$email,'mailbox_provider'=>'Hostinger','status'=>'pending']);
+        } elseif ($existing->status==='suspended') {
+            $existing->update(['status'=>'pending']);
+        }
+        return response()->json($partner->businessEmail()->first());
+    }
+
     public function publicProfile(string $slug)
     {
         $partner=Partner::where('slug',$slug)->where('status','active')->firstOrFail();
