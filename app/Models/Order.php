@@ -1,0 +1,4 @@
+<?php
+namespace App\Models;
+use Illuminate\Database\Eloquent\Model;
+class Order extends Model { protected $fillable=['order_number','client_id','partner_id','service_id','package_id','title','description','subtotal','discount','total','currency','status','payment_status','started_at','completed_at']; protected $casts=['subtotal'=>'decimal:2','discount'=>'decimal:2','total'=>'decimal:2','started_at'=>'datetime','completed_at'=>'datetime']; public function commission(){return $this->hasOne(Commission::class);} public function payments(){return $this->hasMany(Payment::class);} public function partner(){return $this->belongsTo(Partner::class);} }

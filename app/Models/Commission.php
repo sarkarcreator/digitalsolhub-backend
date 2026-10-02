@@ -1,0 +1,4 @@
+<?php
+namespace App\Models;
+use Illuminate\Database\Eloquent\Model;
+class Commission extends Model { protected $fillable=['order_id','partner_id','gross_amount','commission_type','commission_value','partner_amount','dsh_amount','currency','status','approved_by','approved_at','payable_at','paid_at','notes']; protected $casts=['gross_amount'=>'decimal:2','commission_value'=>'decimal:2','partner_amount'=>'decimal:2','dsh_amount'=>'decimal:2','approved_at'=>'datetime','payable_at'=>'datetime','paid_at'=>'datetime']; public function order(){return $this->belongsTo(Order::class);} public function partner(){return $this->belongsTo(Partner::class);} }

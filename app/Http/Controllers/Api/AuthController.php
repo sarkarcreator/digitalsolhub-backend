@@ -28,10 +28,10 @@ class AuthController extends Controller
         $data = $request->validate([
             'email' => ['required', 'email'],
             'password' => ['required', 'string'],
-            'role' => ['required', Rule::in(['student', 'client', 'admin'])],
+            'role' => ['required', Rule::in(['student', 'client', 'admin', 'partner'])],
         ]);
 
-        $user = User::with('studentProfile', 'clientProfile')->where('email', $data['email'])->first();
+        $user = User::with('studentProfile', 'clientProfile', 'partner')->where('email', $data['email'])->first();
 
         if (! $user || ! Hash::check($data['password'], $user->password) || $user->role !== $data['role'] || ! $user->is_active) {
             throw ValidationException::withMessages([
@@ -162,7 +162,7 @@ class AuthController extends Controller
 
     public function me(Request $request)
     {
-        return response()->json($this->transformUser($request->user()->load('studentProfile', 'clientProfile')));
+        return response()->json($this->transformUser($request->user()->load('studentProfile', 'clientProfile', 'partner')));
     }
 
     public function forgotPassword(Request $request)
@@ -234,7 +234,7 @@ class AuthController extends Controller
             'email' => $user->email,
             'phone' => $user->phone,
             'role' => $user->role,
-            'studentId' => $user->studentProfile?->student_id,
+            'studentId' => $user->studentProfile?->student_id,\n            'partner' => $user->partner ? ['id'=>$user->partner->id,'slug'=>$user->partner->slug,'partnerCode'=>$user->partner->partner_code] : null,
         ];
     }
 }
