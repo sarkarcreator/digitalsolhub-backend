@@ -6,7 +6,6 @@ use App\Http\Controllers\Api\AdminStudentController;
 use App\Http\Controllers\Api\AdminPortalController;
 use App\Http\Controllers\Api\ApplicationController;
 use App\Http\Controllers\Api\AuthController;
-use App\Http\Controllers\Api\ClientPortalController;
 use App\Http\Controllers\Api\StudentPortalController;
 use App\Http\Controllers\Api\PartnerController;
 use App\Http\Controllers\Api\AdminPartnerController;
@@ -56,12 +55,6 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/student/support/messages', [StudentPortalController::class, 'sendSupportMessage']);
     Route::put('/student/profile', [StudentPortalController::class, 'updateProfile']);
 
-    Route::get('/client/dashboard', [ClientPortalController::class, 'dashboard']);
-    Route::post('/client/projects', [ClientPortalController::class, 'storeProject']);
-    Route::put('/client/projects/{project}', [ClientPortalController::class, 'updateProject']);
-    Route::delete('/client/projects/{project}', [ClientPortalController::class, 'destroyProject']);
-    Route::post('/client/messages', [ClientPortalController::class, 'sendMessage']);
-
     Route::prefix('partner')->middleware('auth:sanctum')->group(function () {
         Route::get('/dashboard', [PartnerController::class, 'dashboard']);
         Route::get('/profile', [PartnerController::class, 'profile']);
@@ -109,6 +102,4 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/orders/{order}/commission', [AdminPartnerController::class, 'setCommission']);
         Route::post('/commissions/{commission}/release', [AdminPartnerController::class, 'releaseCommission']);
     });
-    Route::post('/client/files', [ClientPortalController::class, 'uploadFile']);
-    Route::put('/client/profile', [ClientPortalController::class, 'updateProfile']);
 });
