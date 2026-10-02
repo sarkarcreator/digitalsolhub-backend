@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
+use App\Notifications\DshPasswordResetNotification;
 
 class User extends Authenticatable
 {
@@ -60,5 +61,15 @@ class User extends Authenticatable
     public function clientProfile()
     {
         return $this->hasOne(ClientProfile::class);
+    }
+
+    public function partner()
+    {
+        return $this->hasOne(Partner::class);
+    }
+
+    public function sendPasswordResetNotification($token): void
+    {
+        $this->notify(new DshPasswordResetNotification($token));
     }
 }
