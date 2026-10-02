@@ -11,6 +11,7 @@ use App\Models\PartnerWallet;
 use App\Models\WalletTransaction;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Password;
 use Illuminate\Support\Str;
 
@@ -102,7 +103,7 @@ class AdminPartnerController extends Controller
 
             DB::afterCommit(function () use ($user) {
                 $token = Password::broker()->createToken($user);
-                $user->notify(new \\App\\Notifications\\DshPasswordResetNotification($token, true));
+                $user->notify(new \App\Notifications\DshPasswordResetNotification($token, true));
             });
             return response()->json(['application'=>$application->fresh(),'partner'=>$partner,'user'=>$user]);
         });
