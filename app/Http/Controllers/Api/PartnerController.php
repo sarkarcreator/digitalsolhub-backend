@@ -61,6 +61,14 @@ class PartnerController extends Controller
             'date_of_birth'=>['required','date','before:today'],'father_name'=>['required','string','max:160'],
             'real_phone'=>['required','string','max:40'],'whatsapp_number'=>['required','string','max:40'],
         ]);
+        $sensitiveChanged = $partner->legal_name !== $request->input('legal_name')
+            || $partner->cnic !== $request->input('cnic')
+            || (string) $partner->date_of_birth?->format('Y-m-d') !== (string) $request->input('date_of_birth')
+            || $partner->father_name !== $request->input('father_name')
+            || $partner->real_phone !== $request->input('real_phone')
+            || $partner->whatsapp_number !== $request->input('whatsapp_number')
+            || $request->hasFile('profile_photo');
+
         if ($request->hasFile('profile_photo')) {
             $request->validate(['profile_photo'=>['image','mimes:jpg,jpeg,png,webp','max:4096']]);
             if ($partner->profile_photo) {
@@ -69,6 +77,12 @@ class PartnerController extends Controller
             $data['profile_photo']=$request->file('profile_photo')->store('partners/profile','public');
         }
         $partner->update($data);
+        if ($sensitiveChanged && Schema::hasTable('partner_onboarding_items')) {
+            DB::table('partner_onboarding_items')->updateOrInsert(
+                ['partner_id'=>$partner->id,'item_type'=>'profile'],
+                ['status'=>'pending','admin_notes'=>'Profile identity details updated and require admin verification.','updated_at'=>now(),'created_at'=>now()]
+            );
+        }
         $portfolio=$partner->portfolio()->updateOrCreate(['partner_id'=>$partner->id],[
             'headline'=>$request->input('headline'),'about'=>$request->input('about'),'experience'=>$request->input('experience'),
             'education'=>$request->input('education'),'location'=>$request->input('location'),'website'=>$request->input('website'),
