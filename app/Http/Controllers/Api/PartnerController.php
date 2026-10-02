@@ -56,8 +56,18 @@ class PartnerController extends Controller
         $data=$request->validate([
             'display_name'=>['required','string','max:120'],'professional_title'=>['nullable','string','max:180'],
             'bio'=>['nullable','string','max:5000'],'country'=>['nullable','string','max:100'],'city'=>['nullable','string','max:100'],
-            'timezone'=>['nullable','string','max:80'],'profile_photo'=>['nullable','string','max:1000'],'cover_photo'=>['nullable','string','max:1000'],
+            'timezone'=>['nullable','string','max:80'],'cover_photo'=>['nullable','string','max:1000'],
+            'legal_name'=>['required','string','max:160'],'cnic'=>['required','string','max:30'],
+            'date_of_birth'=>['required','date','before:today'],'father_name'=>['required','string','max:160'],
+            'real_phone'=>['required','string','max:40'],'whatsapp_number'=>['required','string','max:40'],
         ]);
+        if ($request->hasFile('profile_photo')) {
+            $request->validate(['profile_photo'=>['image','mimes:jpg,jpeg,png,webp','max:4096']]);
+            if ($partner->profile_photo) {
+                \Illuminate\Support\Facades\Storage::disk('public')->delete($partner->profile_photo);
+            }
+            $data['profile_photo']=$request->file('profile_photo')->store('partners/profile','public');
+        }
         $partner->update($data);
         $portfolio=$partner->portfolio()->updateOrCreate(['partner_id'=>$partner->id],[
             'headline'=>$request->input('headline'),'about'=>$request->input('about'),'experience'=>$request->input('experience'),
@@ -138,7 +148,7 @@ class PartnerController extends Controller
             ? DB::table('partner_onboarding_items')->where('partner_id',$partner->id)->get()->keyBy('item_type')
             : collect();
         $has=[
-            'profile'=>(bool)($partner->display_name && $partner->bio),
+            'profile'=>(bool)($partner->legal_name && $partner->cnic && $partner->date_of_birth && $partner->father_name && $partner->real_phone && $partner->whatsapp_number && $partner->profile_photo),
             'portfolio'=>$partner->portfolioItems()->count()>0,
             'services'=>$partner->services()->count()>0,
             'social'=>$partner->socialAccounts()->count()>0,
