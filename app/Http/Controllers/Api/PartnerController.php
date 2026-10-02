@@ -122,6 +122,22 @@ class PartnerController extends Controller
         $item->update($data); return response()->json($item->fresh());
     }
 
+    public function deleteService(Request $request, PartnerService $service)
+    {
+        $partner=$this->partner($request);
+        abort_unless($service->partner_id===$partner->id,403);
+        $service->delete();
+        return response()->json(['message'=>'Service deleted successfully.']);
+    }
+
+    public function deletePortfolio(Request $request, PortfolioItem $item)
+    {
+        $partner=$this->partner($request);
+        abort_unless($item->partner_id===$partner->id,403);
+        $item->delete();
+        return response()->json(['message'=>'Portfolio item deleted successfully.']);
+    }
+
     public function commissions(Request $request)
     {
         return response()->json($this->partner($request)->commissions()->with('order')->latest()->paginate(25));
