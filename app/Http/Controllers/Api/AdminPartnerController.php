@@ -215,7 +215,7 @@ class AdminPartnerController extends Controller
                 }
             } elseif ($row->target_type==='payout_account') {
                 $account=$partner->payoutAccounts()->findOrFail($row->target_id);
-                abort_if(PayoutRequest::where('payout_account_id',$account->id)->whereIn('status',['pending','processing'])->exists(),422,'This payout account has an active payout request and cannot be deleted.');
+                abort_if(DB::table('payout_requests')->where('payout_account_id',$account->id)->whereIn('status',['pending','processing'])->exists(),422,'This payout account has an active payout request and cannot be deleted.');
                 $account->delete();
                 if (Schema::hasTable('partner_onboarding_items') && $partner->payoutAccounts()->count()===0) {
                     DB::table('partner_onboarding_items')->where('partner_id',$partner->id)->where('item_type','payout_account')->update([
