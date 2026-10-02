@@ -12,4 +12,6 @@ class Partner extends Model {
  public function commissions(){return $this->hasMany(Commission::class);}
  public function orders(){return $this->hasMany(Order::class);}
  public function socialAccounts(){return $this->hasMany(SocialAccount::class);}
+ public function businessEmail(){return $this->hasOne(BusinessEmailAccount::class);}
+ public function payoutAccounts(){return $this->hasMany(PayoutAccount::class);}
 }
