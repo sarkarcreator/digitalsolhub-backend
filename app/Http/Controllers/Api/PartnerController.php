@@ -174,6 +174,33 @@ class PartnerController extends Controller
         return response()->json(DB::table('partner_change_requests')->where('id',$id)->first(),201);
     }
 
+    public function requestDeletion(Request $request)
+    {
+        $partner=$this->partner($request);
+        $data=$request->validate([
+            'target_type'=>['required','in:profile,business_email,payout_account,partner_account'],
+            'target_id'=>['nullable','integer'],
+            'reason'=>['required','string','max:5000'],
+        ]);
+        if ($data['target_type']==='payout_account') {
+            abort_unless($data['target_id'] && $partner->payoutAccounts()->whereKey($data['target_id'])->exists(),404,'Payout account not found.');
+        }
+        if ($data['target_type']==='business_email') {
+            abort_unless($partner->businessEmail()->exists(),404,'Business email not found.');
+            $data['target_id']=$partner->businessEmail()->value('id');
+        }
+        if ($data['target_type']==='profile') $data['target_id']=$partner->id;
+        if ($data['target_type']==='partner_account') $data['target_id']=$partner->id;
+
+        abort_if(DB::table('partner_deletion_requests')->where('partner_id',$partner->id)->where('status','pending')->exists(),422,'You already have a pending deletion request.');
+
+        $id=DB::table('partner_deletion_requests')->insertGetId([
+            'partner_id'=>$partner->id,'target_type'=>$data['target_type'],'target_id'=>$data['target_id']??null,
+            'reason'=>$data['reason'],'status'=>'pending','created_at'=>now(),'updated_at'=>now(),
+        ]);
+        return response()->json(DB::table('partner_deletion_requests')->where('id',$id)->first(),201);
+    }
+
     public function requestBusinessEmail(Request $request)
     {
         $partner=$this->partner($request);
