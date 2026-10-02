@@ -9,7 +9,7 @@ return new class extends Migration {
     {
         Schema::create('partner_deletion_requests', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('partner_id')->constrained('partners')->cascadeOnDelete();
+            $table->foreignId('partner_id')->nullable()->constrained('partners')->nullOnDelete();
             $table->string('target_type', 50);
             $table->unsignedBigInteger('target_id')->nullable();
             $table->text('reason');
