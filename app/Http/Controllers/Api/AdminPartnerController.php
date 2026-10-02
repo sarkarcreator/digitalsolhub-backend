@@ -162,6 +162,81 @@ class AdminPartnerController extends Controller
         return response()->json(DB::table('partner_change_requests')->where('id',$changeRequest)->first());
     }
 
+    public function deletionRequests(Request $request)
+    {
+        $this->admin($request);
+        return response()->json(DB::table('partner_deletion_requests')
+            ->join('partners','partners.id','=','partner_deletion_requests.partner_id')
+            ->join('users','users.id','=','partners.user_id')
+            ->select('partner_deletion_requests.*','partners.display_name','partners.partner_code','users.email')
+            ->orderByDesc('partner_deletion_requests.id')->paginate(25));
+    }
+
+    public function reviewDeletionRequest(Request $request, int $deletionRequest)
+    {
+        $this->admin($request);
+        $data=$request->validate([
+            'status'=>['required','in:approved,rejected'],
+            'admin_response'=>['nullable','string','max:5000'],
+        ]);
+        $row=DB::table('partner_deletion_requests')->where('id',$deletionRequest)->first();
+        abort_unless($row,404,'Deletion request not found.');
+        abort_if($row->status!=='pending',422,'This deletion request has already been reviewed.');
+
+        DB::transaction(function() use($row,$data,$request){
+            if ($data['status']==='rejected') {
+                DB::table('partner_deletion_requests')->where('id',$row->id)->update([
+                    'status'=>'rejected','admin_response'=>$data['admin_response']??null,
+                    'reviewed_by'=>$request->user()->id,'reviewed_at'=>now(),'updated_at'=>now(),
+                ]);
+                return;
+            }
+
+            $partner=Partner::findOrFail($row->partner_id);
+            if ($row->target_type==='profile') {
+                if ($partner->profile_photo) {
+                    \Illuminate\Support\Facades\Storage::disk('public')->delete($partner->profile_photo);
+                }
+                $partner->update([
+                    'legal_name'=>null,'cnic'=>null,'date_of_birth'=>null,'father_name'=>null,
+                    'real_phone'=>null,'whatsapp_number'=>null,'profile_photo'=>null,
+                ]);
+                if (Schema::hasTable('partner_onboarding_items')) {
+                    DB::table('partner_onboarding_items')->where('partner_id',$partner->id)->where('item_type','profile')->update([
+                        'status'=>'pending','admin_notes'=>$data['admin_response']??'Profile identity data removed by admin approval.','reviewed_by'=>$request->user()->id,'reviewed_at'=>now(),'updated_at'=>now(),
+                    ]);
+                }
+            } elseif ($row->target_type==='business_email') {
+                $partner->businessEmail()->delete();
+                if (Schema::hasTable('partner_onboarding_items')) {
+                    DB::table('partner_onboarding_items')->where('partner_id',$partner->id)->where('item_type','business_email')->update([
+                        'status'=>'pending','admin_notes'=>$data['admin_response']??'Business email removed by admin approval.','reviewed_by'=>$request->user()->id,'reviewed_at'=>now(),'updated_at'=>now(),
+                    ]);
+                }
+            } elseif ($row->target_type==='payout_account') {
+                $account=$partner->payoutAccounts()->findOrFail($row->target_id);
+                abort_if(PayoutRequest::where('payout_account_id',$account->id)->whereIn('status',['pending','processing'])->exists(),422,'This payout account has an active payout request and cannot be deleted.');
+                $account->delete();
+                if (Schema::hasTable('partner_onboarding_items') && $partner->payoutAccounts()->count()===0) {
+                    DB::table('partner_onboarding_items')->where('partner_id',$partner->id)->where('item_type','payout_account')->update([
+                        'status'=>'pending','admin_notes'=>$data['admin_response']??'Payout account removed by admin approval.','reviewed_by'=>$request->user()->id,'reviewed_at'=>now(),'updated_at'=>now(),
+                    ]);
+                }
+            } elseif ($row->target_type==='partner_account') {
+                $user=$partner->user;
+                $partner->delete();
+                if ($user && $user->role==='partner') $user->delete();
+            }
+
+            DB::table('partner_deletion_requests')->where('id',$row->id)->update([
+                'status'=>'approved','admin_response'=>$data['admin_response']??null,
+                'reviewed_by'=>$request->user()->id,'reviewed_at'=>now(),'updated_at'=>now(),
+            ]);
+        });
+
+        return response()->json(['message'=>'Deletion request reviewed successfully.']);
+    }
+
     public function businessEmail(Request $request, Partner $partner)
     {
         $this->admin($request);
