@@ -11,6 +11,7 @@ use App\Models\Partner;
 use App\Models\SocialAccount;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
+use Illuminate\Support\Facades\Schema;
 
 class PartnerWorkspaceController extends Controller
 {
