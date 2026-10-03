@@ -394,6 +394,7 @@ class AdminPortalController extends Controller
                 'slug' => $data['category'] ?: Str::slug($data['title']),
                 'description' => $data['details'] ?? null,
                 'icon' => $data['type'] ?? null,
+                'image' => $data['image'] ?? null,
                 'is_active' => in_array($data['status'], ['active', 'published'], true),
             ]);
 
