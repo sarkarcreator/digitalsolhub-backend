@@ -35,6 +35,7 @@ class StudentLearningController extends Controller
             ],
             'excelUnlocked'=>(bool)$state->excel_unlocked,
             'dailyLessonsCompleted'=>$this->dailyLessonCount($state),
+            'state'=>$this->statePayload($state),
             'progress'=>$this->progress($state),
         ]);
     }
@@ -128,7 +129,7 @@ class StudentLearningController extends Controller
     private function lessonUnlocked(StudentLearningState $s,int $lesson):bool{if($lesson===1)return true;if($lesson%3!==1)return in_array($lesson-1,$s->completed_lessons??[],true);return in_array((int)floor(($lesson-1)/3),$s->passed_chapters??[],true);}
     private function chapterLessonsComplete(StudentLearningState $s,int $chapter):bool{$base=(($chapter-1)*3)+1;return collect([$base,$base+1,$base+2])->every(fn($id)=>in_array($id,$s->completed_lessons??[],true));}
     private function chapterPassed(StudentLearningState $s,int $chapter):bool{return in_array($chapter,$s->passed_chapters??[],true);}
-    private function chapterUnlocked(StudentLearningState $s,int $chapter):bool{return $state=$s->typing_passed&&($chapter===1||$this->chapterPassed($s,$chapter-1));}
+    private function chapterUnlocked(StudentLearningState $s,int $chapter):bool{return $s->typing_passed&&($chapter===1||$this->chapterPassed($s,$chapter-1));}
     private function publicQuestions(array $questions):array{return array_map(fn($q)=>['q'=>$q['q'],'options'=>$q['options']],$questions);}
     private function scoreAnswers(array $answers,array $questions):float{$correct=0;foreach($questions as $i=>$q)if((string)($answers[$i]??'')===(string)$q['answer'])$correct++;return count($questions)?round($correct/count($questions)*100,2):0;}
     private function finalQuestions():array{return [
