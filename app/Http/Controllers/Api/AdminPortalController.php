@@ -50,6 +50,15 @@ class AdminPortalController extends Controller
         $this->authorizeAdmin($request);
         $this->validateModule($module);
 
+        if ($module === 'service-catalog') {
+            return response()->json(
+                Service::latest()
+                    ->get()
+                    ->map(fn ($service) => $this->serviceResource($service))
+                    ->values()
+            );
+        }
+
         if ($module === 'clients') {
             return response()->json(User::with('clientProfile')->where('role', 'client')->latest()->get()->map(fn ($user) => [
                 'id' => $user->id,
