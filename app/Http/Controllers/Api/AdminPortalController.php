@@ -284,6 +284,16 @@ class AdminPortalController extends Controller
         $this->validateModule($module);
         abort_unless(in_array($module, ['marketplace', 'jobs', 'service-catalog', 'cms', 'academy-content'], true), 404, 'Unknown public module.');
 
+        if ($module === 'service-catalog') {
+            return response()->json(
+                Service::where('is_active', true)
+                    ->latest()
+                    ->get()
+                    ->map(fn ($service) => $this->serviceResource($service))
+                    ->values()
+            );
+        }
+
         return response()->json(
             DB::table('system_settings')
                 ->where('group', $this->groupName($module))
