@@ -770,6 +770,9 @@ class AdminPortalController extends Controller
         ]);
 
         $uploaded = $data['file'];
+        if (in_array($data['purpose'], ['marketplace-image', 'service-image', 'content-image'], true)) {
+            abort_unless(str_starts_with((string) $uploaded->getMimeType(), 'image/'), 422, 'This upload must be an image.');
+        }
         $purpose = match ($data['purpose']) {
             'worksheet' => 'worksheet',
             'marketplace-image' => 'marketplace-image',
