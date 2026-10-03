@@ -54,8 +54,26 @@ class ApplicationController extends Controller
             'category' => ['nullable', 'string', 'max:120'],
             'budget' => ['nullable', 'string', 'max:120'],
             'details' => ['nullable', 'string', 'max:5000'],
+            'businessName' => ['nullable', 'string', 'max:255'],
+            'franchiseType' => ['nullable', 'string', 'max:120'],
+            'experience' => ['nullable', 'string', 'max:5000'],
+            'termsAccepted' => ['nullable', 'boolean'],
+            'reviewAccepted' => ['nullable', 'boolean'],
             'document' => ['nullable', 'file', 'max:10240'],
         ]);
+
+        if ($request->input('applicationType') === 'franchise') {
+            $franchiseData = $request->validate([
+                'businessName' => ['required', 'string', 'max:255'],
+                'targetCountry' => ['required', 'string', 'max:120'],
+                'category' => ['required', 'string', 'max:120'],
+                'budget' => ['required', 'string', 'max:120'],
+                'franchiseType' => ['required', 'string', 'max:120'],
+                'termsAccepted' => ['required', 'accepted'],
+                'reviewAccepted' => ['required', 'accepted'],
+            ]);
+            $data = array_merge($data, $franchiseData);
+        }
 
         $documentUrl = null;
         if ($request->hasFile('document')) {
@@ -78,6 +96,11 @@ class ApplicationController extends Controller
                 'targetCountry' => $data['targetCountry'] ?? null,
                 'category' => $data['category'] ?? null,
                 'budget' => $data['budget'] ?? null,
+                'businessName' => $data['businessName'] ?? null,
+                'franchiseType' => $data['franchiseType'] ?? null,
+                'experience' => $data['experience'] ?? null,
+                'termsAccepted' => $data['termsAccepted'] ?? null,
+                'reviewAccepted' => $data['reviewAccepted'] ?? null,
                 'documentUrl' => $documentUrl,
                 'details' => trim(
                     "Application type: {$label}\n" .
