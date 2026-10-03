@@ -692,7 +692,7 @@ class AdminPortalController extends Controller
 
         $data = $request->validate([
             'file' => ['required', 'file', 'max:51200'],
-            'purpose' => ['required', 'string', 'max:50'],
+            'purpose' => ['required', 'in:project-file,worksheet,marketplace-image'],
             'projectId' => ['nullable', 'integer'],
             'studentUserId' => ['nullable', 'integer'],
             'description' => ['nullable', 'string', 'max:1000'],
@@ -700,8 +700,17 @@ class AdminPortalController extends Controller
         ]);
 
         $uploaded = $data['file'];
-        $purpose = $data['purpose'] === 'worksheet' ? 'worksheet' : 'project-file';
-        $path = $uploaded->store($purpose === 'worksheet' ? 'worksheets' : 'project-files', 'public');
+        $purpose = match ($data['purpose']) {
+            'worksheet' => 'worksheet',
+            'marketplace-image' => 'marketplace-image',
+            default => 'project-file',
+        };
+        $directory = match ($purpose) {
+            'worksheet' => 'worksheets',
+            'marketplace-image' => 'marketplace-images',
+            default => 'project-files',
+        };
+        $path = $uploaded->store($directory, 'public');
         $publicUrl = $this->publishPublicDiskFile($path);
 
         $relatedType = null;
@@ -720,7 +729,7 @@ class AdminPortalController extends Controller
             'file_name' => $uploaded->getClientOriginalName(),
             'file_path' => $publicUrl,
             'file_size' => $uploaded->getSize(),
-            'file_type' => $purpose === 'worksheet' ? 'worksheet' : ($uploaded->getClientOriginalExtension() ?: 'file'),
+            'file_type' => $purpose === 'worksheet' ? 'worksheet' : ($purpose === 'marketplace-image' ? 'marketplace-image' : ($uploaded->getClientOriginalExtension() ?: 'file')),
             'mime_type' => $uploaded->getMimeType() ?: 'application/octet-stream',
             'related_model_type' => $relatedType,
             'related_model_id' => $relatedId,
