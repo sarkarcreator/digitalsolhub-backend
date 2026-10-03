@@ -22,6 +22,8 @@ return new class extends Migration {
             $table->boolean('word_completed')->default(false);
             $table->boolean('excel_unlocked')->default(false);
             $table->timestamp('last_lesson_completed_at')->nullable();
+            $table->unsignedTinyInteger('daily_lessons_completed')->default(0);
+            $table->date('daily_lessons_date')->nullable();
             $table->timestamps();
             $table->unique(['user_id','course_id']);
             $table->index(['user_id','typing_passed','excel_unlocked']);
