@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\FileAttachment;
 use App\Models\PaymentOrder;
 use App\Models\PortalNotification;
+use App\Models\Service;
 use App\Models\ServiceRequest;
 use App\Models\StudentCertification;
 use App\Models\StudentCourseProgress;
@@ -211,6 +212,27 @@ class AdminPortalController extends Controller
             ]));
         }
 
+        if ($module === 'service-catalog') {
+            $data = $request->validate([
+                'title' => ['required', 'string', 'max:255'],
+                'status' => ['required', 'string', 'max:80'],
+                'details' => ['nullable', 'string', 'max:5000'],
+                'type' => ['nullable', 'string', 'max:120'],
+                'category' => ['nullable', 'string', 'max:255'],
+            ]);
+
+            $service = Service::findOrFail($id);
+            $service->update([
+                'name' => $data['title'],
+                'slug' => $data['category'] ?: Str::slug($data['title']),
+                'description' => $data['details'] ?? null,
+                'icon' => $data['type'] ?? null,
+                'is_active' => in_array($data['status'], ['active', 'published'], true),
+            ]);
+
+            return response()->json($this->serviceResource($service->fresh()));
+        }
+
         if ($module === 'certifications') {
             return response()->json(StudentCertification::with('studentProfile.user')->latest()->get()->map(fn ($certificate) => [
                 'id' => $certificate->id,
@@ -225,6 +247,10 @@ class AdminPortalController extends Controller
                 ],
                 'createdAt' => optional($certificate->created_at)->toISOString(),
             ]));
+        }
+
+        if ($module === 'service-catalog') {
+            return response()->json(Service::latest()->get()->map(fn ($service) => $this->serviceResource($service)));
         }
 
         if ($module === 'settings') {
@@ -330,6 +356,26 @@ class AdminPortalController extends Controller
                     'invoiceNumber' => $invoice->order_number,
                 ],
             ], 201);
+        }
+
+        if ($module === 'service-catalog') {
+            $data = $request->validate([
+                'title' => ['required', 'string', 'max:255'],
+                'status' => ['required', 'string', 'max:80'],
+                'details' => ['nullable', 'string', 'max:5000'],
+                'type' => ['nullable', 'string', 'max:120'],
+                'category' => ['nullable', 'string', 'max:255'],
+            ]);
+
+            $service = Service::create([
+                'name' => $data['title'],
+                'slug' => $data['category'] ?: Str::slug($data['title']),
+                'description' => $data['details'] ?? null,
+                'icon' => $data['type'] ?? null,
+                'is_active' => in_array($data['status'], ['active', 'published'], true),
+            ]);
+
+            return response()->json($this->serviceResource($service), 201);
         }
 
         $data = $request->validate([
@@ -863,6 +909,7 @@ class AdminPortalController extends Controller
             'messages' => UserMessage::where('id', $id)->delete(),
             'courses' => StudentCourseProgress::where('id', $id)->delete(),
             'certifications' => StudentCertification::where('id', $id)->delete(),
+            'service-catalog' => Service::where('id', $id)->delete(),
             'clients' => User::where('id', $id)->where('role', 'client')->update(['is_active' => false]),
             'settings' => DB::table('system_settings')->where('id', $id)->delete(),
             default => DB::table('system_settings')
@@ -887,6 +934,27 @@ class AdminPortalController extends Controller
     protected function groupName(string $module): string
     {
         return 'admin_module_' . $module;
+    }
+
+    protected function serviceResource(Service $service): array
+    {
+        return [
+            'id' => $service->id,
+            'status' => $service->is_active ? 'active' : 'disabled',
+            'payload' => [
+                'title' => $service->name,
+                'amount' => $service->slug,
+                'owner' => 'DSH Services',
+                'details' => $service->description,
+                'type' => $service->icon,
+                'category' => $service->slug,
+                'slug' => $service->slug,
+                'icon' => $service->icon,
+                'isActive' => $service->is_active,
+            ],
+            'createdAt' => $service->created_at,
+            'updatedAt' => $service->updated_at,
+        ];
     }
 
     protected function settingResource(object $row): array
