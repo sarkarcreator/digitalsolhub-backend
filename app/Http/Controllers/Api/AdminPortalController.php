@@ -228,6 +228,7 @@ class AdminPortalController extends Controller
                 'details' => ['nullable', 'string', 'max:5000'],
                 'type' => ['nullable', 'string', 'max:120'],
                 'category' => ['nullable', 'string', 'max:255'],
+                'image' => ['nullable', 'string', 'max:1000'],
             ]);
 
             $service = Service::findOrFail($id);
@@ -236,6 +237,7 @@ class AdminPortalController extends Controller
                 'slug' => $data['category'] ?: Str::slug($data['title']),
                 'description' => $data['details'] ?? null,
                 'icon' => $data['type'] ?? null,
+                'image' => $data['image'] ?? null,
                 'is_active' => in_array($data['status'], ['active', 'published'], true),
             ]);
 
@@ -384,6 +386,7 @@ class AdminPortalController extends Controller
                 'details' => ['nullable', 'string', 'max:5000'],
                 'type' => ['nullable', 'string', 'max:120'],
                 'category' => ['nullable', 'string', 'max:255'],
+                'image' => ['nullable', 'string', 'max:1000'],
             ]);
 
             $service = Service::create([
@@ -757,9 +760,10 @@ class AdminPortalController extends Controller
 
         $data = $request->validate([
             'file' => ['required', 'file', 'max:51200'],
-            'purpose' => ['required', 'in:project-file,worksheet,marketplace-image'],
+            'purpose' => ['required', 'in:project-file,worksheet,marketplace-image,service-image,content-image'],
             'projectId' => ['nullable', 'integer'],
             'studentUserId' => ['nullable', 'integer'],
+            'serviceId' => ['nullable', 'integer', 'exists:services,id'],
             'description' => ['nullable', 'string', 'max:1000'],
             'isPublic' => ['nullable'],
         ]);
@@ -768,11 +772,15 @@ class AdminPortalController extends Controller
         $purpose = match ($data['purpose']) {
             'worksheet' => 'worksheet',
             'marketplace-image' => 'marketplace-image',
+            'service-image' => 'service-image',
+            'content-image' => 'content-image',
             default => 'project-file',
         };
         $directory = match ($purpose) {
             'worksheet' => 'worksheets',
             'marketplace-image' => 'marketplace-images',
+            'service-image' => 'service-images',
+            'content-image' => 'content-images',
             default => 'project-files',
         };
         $path = $uploaded->store($directory, 'public');
@@ -788,13 +796,19 @@ class AdminPortalController extends Controller
             $relatedType = User::class;
             $relatedId = $data['studentUserId'];
         }
+        if ($purpose === 'service-image' && ! empty($data['serviceId'])) {
+            $relatedType = Service::class;
+            $relatedId = $data['serviceId'];
+        }
 
         $file = FileAttachment::create([
             'uploaded_by_user_id' => $request->user()->id,
             'file_name' => $uploaded->getClientOriginalName(),
             'file_path' => $publicUrl,
             'file_size' => $uploaded->getSize(),
-            'file_type' => $purpose === 'worksheet' ? 'worksheet' : ($purpose === 'marketplace-image' ? 'marketplace-image' : ($uploaded->getClientOriginalExtension() ?: 'file')),
+            'file_type' => in_array($purpose, ['worksheet', 'marketplace-image', 'service-image', 'content-image'], true)
+                ? $purpose
+                : ($uploaded->getClientOriginalExtension() ?: 'file'),
             'mime_type' => $uploaded->getMimeType() ?: 'application/octet-stream',
             'related_model_type' => $relatedType,
             'related_model_id' => $relatedId,
@@ -967,6 +981,7 @@ class AdminPortalController extends Controller
                 'details' => $service->description,
                 'type' => $service->icon,
                 'category' => $service->slug,
+                'image' => $service->image,
                 'slug' => $service->slug,
                 'icon' => $service->icon,
                 'isActive' => $service->is_active,
