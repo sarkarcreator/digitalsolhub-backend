@@ -1,13 +1,13 @@
 <?php
 
-namespace App\Http\Controllers\Api;
+namespace App\\Http\\Controllers\\Api;
 
-use App\Http\Controllers\Controller;
-use App\Models\StudentPreRegistration;
-use App\Services\NotificationService;
-use Illuminate\Http\Request;
-use Illuminate\Validation\ValidationException;
-use Illuminate\Support\Str;
+use App\\Http\\Controllers\\Controller;
+use App\\Models\\StudentPreRegistration;
+use App\\Services\\NotificationService;
+use Illuminate\\Http\\Request;
+use Illuminate\\Validation\\ValidationException;
+use Illuminate\\Support\\Str;
 
 class AdminStudentController extends Controller
 {
@@ -78,6 +78,25 @@ class AdminStudentController extends Controller
             'status' => $student->status,
             'createdAt' => optional($student->created_at)->toISOString(),
         ], 201);
+    }
+
+    public function destroy(Request $request, int $student)
+    {
+        $this->ensureAdmin($request);
+
+        $record = StudentPreRegistration::query()->findOrFail($student);
+
+        // A registered student's account and learning records must not be
+        // orphaned by deleting only the invitation record.
+        if ($record->registered_user_id) {
+            return response()->json([
+                'message' => 'This student has already registered. Deactivate or remove the student account through the student account workflow instead.',
+            ], 409);
+        }
+
+        $record->delete();
+
+        return response()->noContent();
     }
 
     protected function generateStudentId(): string
