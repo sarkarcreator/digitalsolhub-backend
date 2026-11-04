@@ -27,7 +27,7 @@ return new class extends Migration {
             $table->date('daily_lessons_date')->nullable();
             $table->timestamps();
             $table->unique(['user_id','course_id']);
-            $table->index(['user_id','typing_passed','excel_unlocked']);
+            $table->index(['user_id','typing_passed','excel_unlocked'], 'sl_states_user_typing_excel_idx');
         });
     }
 
