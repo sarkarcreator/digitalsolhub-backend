@@ -489,18 +489,26 @@ class AdminPortalController extends Controller
             ]);
 
             $course = StudentCourseProgress::with('studentProfile.user')->findOrFail($id);
-            $progress = (int) trim($data['amount'], '% ');
-            $course->update([
-                'course_name' => $data['title'],
-                'progress_percentage' => max(0, min(100, $progress)),
-                'status' => $data['status'] === 'completed' ? 'completed' : 'in-progress',
-                'completion_date' => $data['status'] === 'completed' ? now()->toDateString() : null,
-            ]);
+            $progress = max(0, min(100, (int) trim($data['amount'], '% ')));
+            $normalizedStatus = Str::lower(trim($data['status']));
+            $isCompleted = in_array($normalizedStatus, ['completed', 'complete'], true);
 
-            $certificate = null;
-            if ($data['status'] === 'completed') {
-                $certificate = StudentCertification::firstOrCreate(
-                    ['student_id' => $course->student_id, 'certification_name' => $course->course_name],
+            abort_if($isCompleted && $progress < 100, 422, 'A course must reach 100% before it can be approved.');
+
+            $certificate = DB::transaction(function () use ($course, $data, $progress, $isCompleted) {
+                $course->update([
+                    'course_name' => trim($data['title']),
+                    'progress_percentage' => $progress,
+                    'status' => $isCompleted ? 'completed' : 'in-progress',
+                    'completion_date' => $isCompleted ? now()->toDateString() : null,
+                ]);
+
+                if (! $isCompleted) {
+                    return null;
+                }
+
+                return StudentCertification::firstOrCreate(
+                    ['student_id' => $course->student_id, 'certification_name' => trim($data['title'])],
                     [
                         'certification_number' => 'DSH-' . Str::upper(Str::random(10)),
                         'issued_date' => now()->toDateString(),
@@ -508,7 +516,9 @@ class AdminPortalController extends Controller
                         'status' => 'active',
                     ]
                 );
-            }
+            });
+
+            $course->refresh()->load('studentProfile.user');
 
             return response()->json([
                 'id' => $course->id,
