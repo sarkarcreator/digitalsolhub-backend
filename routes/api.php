@@ -62,6 +62,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/office-management/chapter-tests/{chapter}', [StudentLearningController::class, 'chapterTest']);
         Route::get('/office-management/final-test', [StudentLearningController::class, 'finalTest']);
         Route::post('/office-management/typing', [StudentLearningController::class, 'submitTyping']);
+        Route::post('/office-management/lessons/{lesson}/test', [StudentLearningController::class, 'submitLessonTest']);
         Route::post('/office-management/lessons/{lesson}/complete', [StudentLearningController::class, 'completeLesson']);
         Route::post('/office-management/chapter-tests/{chapter}', [StudentLearningController::class, 'submitChapterTest']);
         Route::post('/office-management/final-test', [StudentLearningController::class, 'submitWordFinal']);
