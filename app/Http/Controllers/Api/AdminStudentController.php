@@ -80,6 +80,24 @@ class AdminStudentController extends Controller
         ], 201);
     }
 
+    public function destroy(Request $request, int $student)
+    {
+        $this->ensureAdmin($request);
+
+        $record = StudentPreRegistration::query()->findOrFail($student);
+
+        // Do not orphan a registered student's account and learning records.
+        if ($record->registered_user_id) {
+            return response()->json([
+                'message' => 'This student has already registered. Their account cannot be deleted from the invitation list.',
+            ], 409);
+        }
+
+        $record->delete();
+
+        return response()->noContent();
+    }
+
     protected function generateStudentId(): string
     {
         do {
