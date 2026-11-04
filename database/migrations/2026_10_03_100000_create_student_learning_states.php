@@ -17,6 +17,7 @@ return new class extends Migration {
             $table->decimal('typing_accuracy', 6, 2)->nullable();
             $table->unsignedInteger('current_lesson')->default(0);
             $table->json('completed_lessons')->nullable();
+            $table->json('passed_lessons')->nullable();
             $table->json('passed_chapters')->nullable();
             $table->boolean('word_final_passed')->default(false);
             $table->boolean('word_completed')->default(false);
