@@ -134,6 +134,7 @@ class StudentLearningController extends Controller
     {
         $data=$request->validate(['courseId'=>'required|string|max:120','courseName'=>'required|string|max:255','answers'=>'required|array|min:1']);
         $state=$this->state($request,$data['courseId'],$data['courseName']);
+        abort_unless($this->isOfficeManagement($data['courseId'],$data['courseName']),422,'This learning path is only available for Office Management.');
         abort_unless($state->typing_passed,403,'Pass the typing test first.');
         abort_unless($chapter>=1 && $chapter<=12,404,'Chapter not found.');
         abort_unless($this->chapterUnlocked($state,$chapter),403,'This chapter is locked.');
