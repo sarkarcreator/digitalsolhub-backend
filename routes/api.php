@@ -49,6 +49,16 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::delete('/admin/files/{file}', [AdminPortalController::class, 'destroyFile']);
     Route::post('/admin/messages/{message}/reply', [AdminPortalController::class, 'replyMessage']);
 
+    Route::prefix('student/learning/excel')->controller(\\App\\Http\\Controllers\\Api\\StudentExcelLearningController::class)->group(function () {
+        Route::get('/', 'dashboard');
+        Route::post('/lessons/{lesson}/test', 'lessonTest');
+        Route::post('/lessons/{lesson}/complete', 'completeLesson');
+        Route::get('/chapter-tests/{chapter}', 'chapterTest');
+        Route::post('/chapter-tests/{chapter}', 'submitChapterTest');
+        Route::get('/final-test', 'finalTest');
+        Route::post('/final-test', 'submitFinalTest');
+    });
+
     Route::get('/student/dashboard', [StudentPortalController::class, 'dashboard']);
     Route::post('/student/courses/enroll', [StudentPortalController::class, 'enroll']);
     Route::put('/student/courses/{course}/progress', [StudentPortalController::class, 'updateProgress']);
