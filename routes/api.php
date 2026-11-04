@@ -8,6 +8,7 @@ use App\Http\Controllers\Api\ApplicationController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\ClientPortalController;
 use App\Http\Controllers\Api\StudentPortalController;
+use App\Http\Controllers\Api\StudentLearningController;
 use App\Http\Controllers\Api\PartnerController;
 use App\Http\Controllers\Api\AdminPartnerController;
 
@@ -55,6 +56,16 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::put('/student/courses/{course}/progress', [StudentPortalController::class, 'updateProgress']);
     Route::post('/student/support/messages', [StudentPortalController::class, 'sendSupportMessage']);
     Route::put('/student/profile', [StudentPortalController::class, 'updateProfile']);
+
+    Route::prefix('student/learning')->group(function () {
+        Route::get('/office-management', [StudentLearningController::class, 'officeManagement']);
+        Route::get('/office-management/chapter-tests/{chapter}', [StudentLearningController::class, 'chapterTest']);
+        Route::get('/office-management/final-test', [StudentLearningController::class, 'finalTest']);
+        Route::post('/office-management/typing', [StudentLearningController::class, 'submitTyping']);
+        Route::post('/office-management/lessons/{lesson}/complete', [StudentLearningController::class, 'completeLesson']);
+        Route::post('/office-management/chapter-tests/{chapter}', [StudentLearningController::class, 'submitChapterTest']);
+        Route::post('/office-management/final-test', [StudentLearningController::class, 'submitWordFinal']);
+    });
 
     Route::get('/client/dashboard', [ClientPortalController::class, 'dashboard']);
     Route::post('/client/projects', [ClientPortalController::class, 'storeProject']);
