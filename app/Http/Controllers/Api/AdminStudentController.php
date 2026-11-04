@@ -4,8 +4,11 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\StudentPreRegistration;
+use App\Models\User;
 use App\Services\NotificationService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Rule;
 use Illuminate\Validation\ValidationException;
 use Illuminate\Support\Str;
 
@@ -78,6 +81,78 @@ class AdminStudentController extends Controller
             'status' => $student->status,
             'createdAt' => optional($student->created_at)->toISOString(),
         ], 201);
+    }
+
+    public function update(Request $request, int $student)
+    {
+        $this->ensureAdmin($request);
+
+        $record = StudentPreRegistration::query()->findOrFail($student);
+
+        $emailRules = [
+            'required',
+            'email',
+            'max:190',
+            Rule::unique('student_pre_registrations', 'email')->ignore($record->id),
+        ];
+
+        if ($record->registered_user_id) {
+            $emailRules[] = Rule::unique('users', 'email')->ignore($record->registered_user_id);
+        } else {
+            $emailRules[] = Rule::unique('users', 'email');
+        }
+
+        // A registered invitation must remain registered; an unregistered
+        // invitation cannot be marked registered without a real user account.
+        $allowedStatuses = $record->registered_user_id
+            ? ['registered', 'disabled']
+            : ['invited', 'disabled'];
+
+        $data = $request->validate([
+            'name' => ['required', 'string', 'max:190'],
+            'email' => $emailRules,
+            'phone' => ['required', 'string', 'max:30'],
+            'course' => ['required', 'string', 'max:190'],
+            'status' => ['required', Rule::in($allowedStatuses)],
+        ]);
+
+        $record = DB::transaction(function () use ($record, $data) {
+            $record->update([
+                'full_name' => $data['name'],
+                'email' => $data['email'],
+                'phone' => $data['phone'],
+                'course_name' => $data['course'],
+                'status' => $data['status'],
+            ]);
+
+            // Keep the registered student's login and profile consistent
+            // with the admin-managed student record.
+            if ($record->registered_user_id) {
+                $user = User::query()->findOrFail($record->registered_user_id);
+                $user->update([
+                    'name' => $data['name'],
+                    'email' => $data['email'],
+                    'phone' => $data['phone'],
+                ]);
+
+                $user->studentProfile?->update([
+                    'course_name' => $data['course'],
+                ]);
+            }
+
+            return $record->refresh();
+        });
+
+        return response()->json([
+            'id' => $record->id,
+            'name' => $record->full_name,
+            'email' => $record->email,
+            'phone' => $record->phone,
+            'studentId' => $record->student_id,
+            'course' => $record->course_name,
+            'status' => $record->status,
+            'createdAt' => optional($record->created_at)->toISOString(),
+        ]);
     }
 
     public function destroy(Request $request, int $student)
