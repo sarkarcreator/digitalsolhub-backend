@@ -216,7 +216,7 @@ class StudentExcelLearningController extends Controller
         abort_unless(count($this->arr($state->excel_passed_chapters))===12,403,'Pass all 12 Excel chapter tests first.');
         $score=$this->score($data['answers'],$this->finalQuestions());$passed=$score>=self::PASS;
         if($passed) DB::table('student_learning_states')->where('id',$state->id)->update(['excel_final_passed'=>true,'updated_at'=>now()]);
-        $this->attempt($request,$data['courseId'],'excel_final',$score===0?null:null,$score,$passed,$data['answers']);
+        $this->attempt($request,$data['courseId'],'excel_final',null,$score,$passed,$data['answers']);
         return response()->json(['passed'=>$passed,'score'=>$score,'passingScore'=>self::PASS,'message'=>$passed?'Congratulations! Microsoft Excel course completed.':'Final test pass nahi hua. Dobara tayari karein.']);
     }
 }
