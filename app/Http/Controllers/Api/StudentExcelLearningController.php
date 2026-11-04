@@ -75,11 +75,11 @@ class StudentExcelLearningController extends Controller
         return [
             1=>'Spreadsheets aur data calculations ke liye',2=>'Ribbon',3=>'Column letter aur row number ka intersection',
             4=>'File > Save As',5=>'Rename',6=>'Fill Handle',7=>'Row ya column heading',8=>'Number Format',9=>'Wrap Text',
-            10=>'=',11=>'A1+B1',12=>'Dollar sign ($)',13=>'SUM',14=>'AVERAGE',15=>'COUNT',
-            16=>'IF',17=>'AND',18=>'IFERROR',19=>'VLOOKUP',20=>'Horizontal row mein search',
+            10=>'=',11=>'A1+B1',12=>'Dollar sign ($)',13=>'SUM',14=>'COUNT',15=>'Obtained/Total*100',
+            16=>'IF',17=>'Jab tamam conditions true hon',18=>'IFERROR',19=>'Table ke first column mein value dhoond kar result lana',20=>'Horizontal row mein search',
             21=>'XLOOKUP',22=>'Data tab',23=>'Filter',24=>'Data Validation',25=>'Format as Table',
             26=>'Conditional Formatting',27=>'Duplicate values',28=>'Data ko visual form mein dikhana',
-            29=>'Pie Chart',30=>'Chart Title',31=>'Data summarize karna',32=>'PivotTable Fields',
+            29=>'Legend',30=>'Data ko ek nazar mein summarize karna',31=>'Data summarize karna',32=>'PivotTable Fields',
             33=>'Print Area',34=>'SUM',35=>'Monthly expense report',36=>'Formula aur formatting check',
         ];
     }
