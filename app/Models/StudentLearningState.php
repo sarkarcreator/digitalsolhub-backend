@@ -9,7 +9,7 @@ class StudentLearningState extends Model
     protected $fillable = [
         'user_id','course_id','course_name','typing_passed','typing_wpm',
         'typing_accuracy','current_lesson','word_completed','excel_unlocked',
-        'completed_lessons','passed_chapters','word_final_passed','last_lesson_completed_at','daily_lessons_completed','daily_lessons_date',
+        'completed_lessons','passed_lessons','passed_chapters','word_final_passed','last_lesson_completed_at','daily_lessons_completed','daily_lessons_date',
     ];
 
     protected $casts = [
@@ -20,6 +20,7 @@ class StudentLearningState extends Model
         'word_completed'=>'boolean',
         'excel_unlocked'=>'boolean',
         'completed_lessons'=>'array',
+        'passed_lessons'=>'array',
         'passed_chapters'=>'array',
         'word_final_passed'=>'boolean',
         'last_lesson_completed_at'=>'datetime','daily_lessons_date'=>'date',
