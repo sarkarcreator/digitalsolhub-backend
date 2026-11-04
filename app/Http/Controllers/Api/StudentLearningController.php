@@ -18,6 +18,7 @@ class StudentLearningController extends Controller
     public function officeManagement(Request $request)
     {
         $state = $this->state($request);
+        abort_unless($this->isOfficeManagement($state->course_id, $state->course_name), 422, 'This learning path is only available for Office Management.');
         $chapters = $this->chapters();
 
         return response()->json([
@@ -43,6 +44,7 @@ class StudentLearningController extends Controller
     public function chapterTest(Request $request, int $chapter)
     {
         $state=$this->state($request);
+        abort_unless($this->isOfficeManagement($state->course_id,$state->course_name),422,'This learning path is only available for Office Management.');
         abort_unless($state->typing_passed,403,'Pass the typing test first.');
         abort_unless($chapter>=1 && $chapter<=12,404,'Chapter not found.');
         abort_unless($this->chapterUnlocked($state,$chapter),403,'This chapter is locked.');
@@ -54,6 +56,7 @@ class StudentLearningController extends Controller
     public function finalTest(Request $request)
     {
         $state=$this->state($request);
+        abort_unless($this->isOfficeManagement($state->course_id,$state->course_name),422,'This learning path is only available for Office Management.');
         abort_unless(count($state->passed_chapters??[])===12,403,'Complete and pass all 12 Word chapter tests first.');
         return response()->json(['questions'=>$this->publicQuestions($this->finalQuestions()),'passingScore'=>self::TEST_PASSING_SCORE]);
     }
@@ -75,6 +78,40 @@ class StudentLearningController extends Controller
         return response()->json(['passed'=>$passed,'wpm'=>$wpm,'accuracy'=>$accuracy,'requiredWpm'=>self::TYPING_MIN_WPM,'requiredAccuracy'=>self::TYPING_MIN_ACCURACY,'message'=>$passed?'Typing test passed. Microsoft Word is now unlocked.':'Typing test not passed. Please try again.']);
     }
 
+    public function submitLessonTest(Request $request, int $lesson)
+    {
+        $data=$request->validate([
+            'courseId'=>'required|string|max:120',
+            'courseName'=>'required|string|max:255',
+            'answer'=>'required|string|max:255',
+        ]);
+        abort_unless($this->isOfficeManagement($data['courseId'],$data['courseName']),422,'This learning path is only available for Office Management.');
+        abort_unless($lesson>=1 && $lesson<=36,404,'Lesson not found.');
+        $state=$this->state($request,$data['courseId'],$data['courseName']);
+        abort_unless($state->typing_passed,403,'Pass the typing test first.');
+        abort_unless($this->lessonUnlocked($state,$lesson),403,'Complete the previous lesson or chapter test first.');
+        $passed=($this->lessonAnswers()[$lesson]??null)===$data['answer'];
+        if($passed){
+            $passedLessons=$state->passed_lessons??[];
+            $passedLessons[]=$lesson;
+            $state->passed_lessons=array_values(array_unique(array_map('intval',$passedLessons)));
+            $state->save();
+        }
+        StudentLearningAttempt::create([
+            'user_id'=>$request->user()->id,
+            'course_id'=>$data['courseId'],
+            'stage'=>'lesson_test',
+            'chapter'=>(int)ceil($lesson/3),
+            'score'=>$passed?100:0,
+            'passed'=>$passed,
+            'answers'=>[$data['answer']],
+        ]);
+        return response()->json([
+            'passed'=>$passed,
+            'message'=>$passed?'Knowledge check passed. You can now complete this lesson.':'Incorrect answer. Review the lesson and try again.',
+        ]);
+    }
+
     public function completeLesson(Request $request,int $lesson)
     {
         $data=$request->validate(['courseId'=>'required|string|max:120','courseName'=>'required|string|max:255']);
@@ -83,6 +120,7 @@ class StudentLearningController extends Controller
         abort_unless($state->typing_passed,403,'Pass the typing test before starting Microsoft Word.');
         abort_unless($lesson>=1 && $lesson<=36,404,'Lesson not found.');
         abort_unless($this->lessonUnlocked($state,$lesson),403,'Complete the previous lesson or chapter test first.');
+        abort_unless(in_array($lesson,$state->passed_lessons??[],true),403,'Pass this lesson knowledge check before completing it.');
         $completed=$state->completed_lessons??[];
         if(in_array($lesson,$completed,true)) return response()->json(['message'=>'Lesson already completed.','state'=>$this->statePayload($state)]);
         if($this->dailyLessonCount($state)>=3) abort(429,'Daily limit reached. You can continue with the next lesson tomorrow.');
@@ -125,13 +163,24 @@ class StudentLearningController extends Controller
 
     private function isOfficeManagement(string $id,string $name):bool{return Str::contains(Str::lower($id),'office-management')||Str::contains(Str::lower($name),'office management');}
     private function dailyLessonCount(StudentLearningState $s):int{return $s->daily_lessons_date&&$s->daily_lessons_date->isToday()?(int)$s->daily_lessons_completed:0;}
-    private function statePayload(StudentLearningState $s):array{return ['typingPassed'=>$s->typing_passed,'completedLessons'=>$s->completed_lessons??[],'passedChapters'=>$s->passed_chapters??[],'wordFinalPassed'=>$s->word_final_passed,'excelUnlocked'=>$s->excel_unlocked,'dailyLessonsCompleted'=>$this->dailyLessonCount($s)];}
+    private function statePayload(StudentLearningState $s):array{return ['typingPassed'=>$s->typing_passed,'completedLessons'=>$s->completed_lessons??[],'passedLessons'=>$s->passed_lessons??[],'passedChapters'=>$s->passed_chapters??[],'wordFinalPassed'=>$s->word_final_passed,'excelUnlocked'=>$s->excel_unlocked,'dailyLessonsCompleted'=>$this->dailyLessonCount($s)];}
     private function lessonUnlocked(StudentLearningState $s,int $lesson):bool{if($lesson===1)return true;if($lesson%3!==1)return in_array($lesson-1,$s->completed_lessons??[],true);return in_array((int)floor(($lesson-1)/3),$s->passed_chapters??[],true);}
     private function chapterLessonsComplete(StudentLearningState $s,int $chapter):bool{$base=(($chapter-1)*3)+1;return collect([$base,$base+1,$base+2])->every(fn($id)=>in_array($id,$s->completed_lessons??[],true));}
     private function chapterPassed(StudentLearningState $s,int $chapter):bool{return in_array($chapter,$s->passed_chapters??[],true);}
     private function chapterUnlocked(StudentLearningState $s,int $chapter):bool{return $s->typing_passed&&($chapter===1||$this->chapterPassed($s,$chapter-1));}
     private function publicQuestions(array $questions):array{return array_map(fn($q)=>['q'=>$q['q'],'options'=>$q['options']],$questions);}
     private function scoreAnswers(array $answers,array $questions):float{$correct=0;foreach($questions as $i=>$q)if((string)($answers[$i]??'')===(string)$q['answer'])$correct++;return count($questions)?round($correct/count($questions)*100,2):0;}
+    private function lessonAnswers():array{return [
+        1=>'Documents banane ke liye',2=>'Ctrl+S',3=>'Ctrl+Home',4=>'Ctrl+A',5=>'Ctrl+C',6=>'Ctrl+H',
+        7=>'Ctrl+B',8=>'Ctrl+J',9=>'Styles',10=>'Layout tab',11=>'Ctrl+Enter',12=>'Insert',
+        13=>'Numbering',14=>'Tab',15=>'View',16=>'Insert',17=>'Table Design',18=>'Ascending',
+        19=>'Insert',20=>'Wrap Text',21=>'Insert',22=>'Page ke bottom par',23=>'References',
+        24=>'Heading Styles',25=>'Review',26=>'Track Changes',27=>'Inspect Document',
+        28=>'Letter ka topic batana',29=>'Headings',30=>'Template',31=>'Section Break',
+        32=>'Field',33=>'Image ka maqsad describe karne ke liye',
+        34=>'Proofread aur formatting check',35=>'File menu',
+        36=>'Consistent formatting aur clear structure',
+    ];}
     private function finalQuestions():array{return [
         ['q'=>'Which shortcut saves a Word document?','options'=>['Ctrl+S','Ctrl+P','Ctrl+N','Ctrl+F'],'answer'=>'Ctrl+S'],
         ['q'=>'Which feature applies consistent formatting to headings?','options'=>['Styles','Zoom','Comments','Print'],'answer'=>'Styles'],
