@@ -49,6 +49,27 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::delete('/admin/files/{file}', [AdminPortalController::class, 'destroyFile']);
     Route::post('/admin/messages/{message}/reply', [AdminPortalController::class, 'replyMessage']);
 
+    Route::prefix('student/learning')->group(function () {
+        Route::get('/office-management', [\App\Http\Controllers\Api\StudentLearningController::class, 'officeManagement']);
+        Route::get('/office-management/chapter-tests/{chapter}', [\App\Http\Controllers\Api\StudentLearningController::class, 'chapterTest']);
+        Route::get('/office-management/final-test', [\App\Http\Controllers\Api\StudentLearningController::class, 'finalTest']);
+        Route::post('/office-management/typing', [\App\Http\Controllers\Api\StudentLearningController::class, 'submitTyping']);
+        Route::post('/office-management/lessons/{lesson}/test', [\App\Http\Controllers\Api\StudentLearningController::class, 'submitLessonTest']);
+        Route::post('/office-management/lessons/{lesson}/complete', [\App\Http\Controllers\Api\StudentLearningController::class, 'completeLesson']);
+        Route::post('/office-management/chapter-tests/{chapter}', [\App\Http\Controllers\Api\StudentLearningController::class, 'submitChapterTest']);
+        Route::post('/office-management/final-test', [\App\Http\Controllers\Api\StudentLearningController::class, 'submitWordFinal']);
+    });
+
+    Route::prefix('student/learning/excel')->controller(\App\Http\Controllers\Api\StudentExcelLearningController::class)->group(function () {
+        Route::get('/', 'dashboard');
+        Route::post('/lessons/{lesson}/test', 'lessonTest');
+        Route::post('/lessons/{lesson}/complete', 'completeLesson');
+        Route::get('/chapter-tests/{chapter}', 'chapterTest');
+        Route::post('/chapter-tests/{chapter}', 'submitChapterTest');
+        Route::get('/final-test', 'finalTest');
+        Route::post('/final-test', 'submitFinalTest');
+    });
+
     Route::get('/student/dashboard', [StudentPortalController::class, 'dashboard']);
     Route::post('/student/courses/enroll', [StudentPortalController::class, 'enroll']);
     Route::put('/student/courses/{course}/progress', [StudentPortalController::class, 'updateProgress']);
