@@ -88,6 +88,7 @@ class StudentLearningController extends Controller
         abort_unless($this->isOfficeManagement($data['courseId'],$data['courseName']),422,'This learning path is only available for Office Management.');
         abort_unless($lesson>=1 && $lesson<=36,404,'Lesson not found.');
         $state=$this->state($request,$data['courseId'],$data['courseName']);
+        abort_unless($this->isOfficeManagement($data['courseId'],$data['courseName']),422,'This learning path is only available for Office Management.');
         abort_unless($state->typing_passed,403,'Pass the typing test first.');
         abort_unless($this->lessonUnlocked($state,$lesson),403,'Complete the previous lesson or chapter test first.');
         $passed=($this->lessonAnswers()[$lesson]??null)===$data['answer'];
@@ -147,6 +148,7 @@ class StudentLearningController extends Controller
     {
         $data=$request->validate(['courseId'=>'required|string|max:120','courseName'=>'required|string|max:255','answers'=>'required|array|min:1']);
         $state=$this->state($request,$data['courseId'],$data['courseName']);
+        abort_unless($this->isOfficeManagement($data['courseId'],$data['courseName']),422,'This learning path is only available for Office Management.');
         abort_unless(count($state->passed_chapters??[])===12,403,'Complete and pass all 12 Word chapter tests first.');
         $score=$this->scoreAnswers($data['answers'],$this->finalQuestions()); $passed=$score>=self::TEST_PASSING_SCORE;
         if($passed){$state->word_final_passed=true;$state->word_completed=true;$state->excel_unlocked=true;$state->save();}
